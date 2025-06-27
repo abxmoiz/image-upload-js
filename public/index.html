@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧪 Image Upload Testing App</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+
+        .testing-badge {
+            background: rgba(255,255,255,0.2);
+            padding: 8px 16px;
+            border-radius: 20px;
+            display: inline-block;
+            margin-top: 10px;
+            font-size: 0.9rem;
+        }
+
+        .main-content {
+            padding: 30px;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #ff6b35;
+        }
+
+        .stat-label {
+            color: #6c757d;
+            margin-top: 5px;
+            font-size: 0.9rem;
+        }
+
+        .upload-section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            text-align: center;
+            border: 3px dashed #e9ecef;
+            transition: all 0.3s ease;
+        }
+
+        .upload-section:hover {
+            border-color: #ff6b35;
+            background: #fff5f0;
+        }
+
+        .upload-section.dragover {
+            border-color: #f7931e;
+            background: #ffe6d9;
+            transform: scale(1.02);
+        }
+
+        .upload-area {
+            cursor: pointer;
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            color: #ff6b35;
+            margin-bottom: 15px;
+        }
+
+        .upload-text {
+            font-size: 1.1rem;
+            color: #495057;
+            margin-bottom: 15px;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .upload-btn {
+            background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .upload-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 15px rgba(255, 107, 53, 0.3);
+        }
+
+        .upload-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .testing-limits {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+        }
+
+        .testing-limits h4 {
+            color: #856404;
+            margin-bottom: 8px;
+        }
+
+        .testing-limits ul {
+            color: #856404;
+            margin-left: 20px;
+        }
+
+        .gallery {
+            margin-top: 30px;
+        }
+
+        .gallery h2 {
+            color: #495057;
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+        }
+
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .image-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+
+        .image-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        }
+
+        .image-card img {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+        }
+
+        .image-info {
+            padding: 12px;
+        }
+
+        .image-name {
+            font-weight: bold;
+            color: #495057;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            word-break: break-all;
+        }
+
+        .image-meta {
+            color: #6c757d;
+            font-size: 0.8rem;
+            margin-bottom: 10px;
+        }
+
+        .delete-btn {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.3s ease;
+        }
+
+        .delete-btn:hover {
+            background: linear-gradient(135deg, #ee5a52, #ff4757);
+            transform: scale(1.05);
+        }
+
+        .message {
+            padding: 12px;
+            border-radius: 8px;
+            margin: 15px 0;
+            text-align: center;
+            display: none;
+            font-size: 0.9rem;
+        }
+
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #6c757d;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #ff6b35;
+            border-radius: 50%;
+            width: 25px;
+            height: 25px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: #e9ecef;
+            border-radius: 2px;
+            margin: 15px 0;
+            overflow: hidden;
+            display: none;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff6b35, #f7931e);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 15px;
+            }
+
+            .main-content {
+                padding: 20px;
+            }
+
+            .header h1 {
+                font-size: 1.8rem;
+            }
+
+            .image-grid {
+                grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            }
+
+            .stats {
+                flex-direction: column;
+                gap: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧪 Image Upload Testing</h1>
+            <p>Test image upload and delete functionality with IP whitelisting</p>
+            <div class="testing-badge">AB Moiz Test For PCG</div>
+        </div>
+
+        <div class="main-content">
+            <div class="testing-limits">
+                <h4>🔧 Testing Limitations:</h4>
+                <ul>
+                    <li>Maximum 5MB per image file</li>
+                    <li>Maximum 5 files per upload</li>
+                    <li>Images stored in memory only (lost on restart)</li>
+                    <li>Access restricted to IP: 20.218.226.24</li>
+                </ul>
+            </div>
+
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="stat-number" id="totalImages">0</div>
+                    <div class="stat-label">Images Uploaded</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="totalSize">0 MB</div>
+                    <div class="stat-label">Total Size</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="sessionTime">0s</div>
+                    <div class="stat-label">Session Time</div>
+                </div>
+            </div>
+
+            <div class="upload-section" id="uploadSection">
+                <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+                    <div class="upload-icon">📤</div>
+                    <div class="upload-text">
+                        Drag & drop test images or click to browse
+                    </div>
+                    <button class="upload-btn" id="uploadBtn">Select Test Images</button>
+                </div>
+                <input type="file" id="fileInput" class="file-input" multiple accept="image/*">
+                <div class="progress-bar" id="progressBar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+            </div>
+
+            <div class="message" id="message"></div>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Loading test images...</p>
+            </div>
+
+            <div class="gallery">
+                <h2>Test Images (<span id="imageCount">0</span>)</h2>
+                <div class="image-grid" id="imageGrid">
+                    <!-- Images will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class TestImageManager {
+            constructor() {
+                this.baseURL = window.location.origin;
+                this.images = [];
+                this.startTime = Date.now();
+                this.init();
+            }
+
+            async init() {
+                this.setupEventListeners();
+                this.startSessionTimer();
+                await this.loadImages();
+                console.log('🧪 Test Image Manager initialized');
+            }
+
+            setupEventListeners() {
+                const fileInput = document.getElementById('fileInput');
+                const uploadSection = document.getElementById('uploadSection');
+
+                fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
+
+                // Drag and drop
+                uploadSection.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    uploadSection.classList.add('dragover');
+                });
+
+                uploadSection.addEventListener('dragleave', (e) => {
+                    e.preventDefault();
+                    uploadSection.classList.remove('dragover');
+                });
+
+                uploadSection.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    uploadSection.classList.remove('dragover');
+                    const files = e.dataTransfer.files;
+                    this.handleFiles(files);
+                });
+            }
+
+            startSessionTimer() {
+                setInterval(() => {
+                    const elapsed = Math.floor((Date.now() - this.startTime) / 1000);
+                    document.getElementById('sessionTime').textContent = elapsed + 's';
+                }, 1000);
+            }
+
+            async loadImages() {
+                try {
+                    this.showLoading();
+                    const response = await fetch(`${this.baseURL}/api/images`);
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        this.images = data.images;
+                        this.renderImages();
+                        this.updateStats();
+                        console.log('✅ Test images loaded:', data.total);
+                    } else {
+                        this.showMessage('Failed to load test images: ' + data.error, 'error');
+                    }
+                } catch (error) {
+                    this.showMessage('Test error loading images: ' + error.message, 'error');
+                } finally {
+                    this.hideLoading();
+                }
+            }
+
+            handleFileSelect(event) {
+                const files = event.target.files;
+                this.handleFiles(files);
+            }
+
+            async handleFiles(files) {
+                if (files.length === 0) return;
+
+                // Validate file count for testing
+                if (files.length > 5) {
+                    this.showMessage('Testing limit: Maximum 5 files allowed', 'error');
+                    return;
+                }
+
+                this.showProgress();
+                this.setUploadButtonState(true);
+                
+                try {
+                    const formData = new FormData();
+                    let validFiles = 0;
+
+                    for (let i = 0; i < files.length; i++) {
+                        const file = files[i];
+                        
+                        if (!file.type.startsWith('image/')) {
+                            this.showMessage(`Test error: ${file.name} is not an image file`, 'error');
+                            continue;
+                        }
+
+                        if (file.size > 5 * 1024 * 1024) { // 5MB limit for testing
+                            this.showMessage(`Test error: ${file.name} exceeds 5MB limit`, 'error');
+                            continue;
+                        }
+
+                        formData.append('images', file);
+                        validFiles++;
+                    }
+
+                    if (validFiles === 0) {
+                        this.showMessage('No valid test images to upload', 'error');
+                        return;
+                    }
+
+                    const response = await fetch(`${this.baseURL}/api/upload`, {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        this.showMessage(`✅ ${data.message}`, 'success');
+                        await this.loadImages();
+                        console.log('📤 Test upload successful:', data.files.length, 'files');
+                    } else {
+                        this.showMessage('Test upload failed: ' + data.error, 'error');
+                    }
+                } catch (error) {
+                    this.showMessage('Test upload error: ' + error.message, 'error');
+                } finally {
+                    this.hideProgress();
+                    this.setUploadButtonState(false);
+                    document.getElementById('fileInput').value = '';
+                }
+            }
+
+            async deleteImage(imageId) {
+                if (!confirm('Delete this test image?')) return;
+
+                try {
+                    const response = await fetch(`${this.baseURL}/api/images/${imageId}`, {
+                        method: 'DELETE'
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        this.showMessage('✅ Test image deleted successfully', 'success');
+                        await this.loadImages();
+                        console.log('🗑️ Test delete successful');
+                    } else {
+                        this.showMessage('Test delete failed: ' + data.error, 'error');
+                    }
+                } catch (error) {
+                    this.showMessage('Test delete error: ' + error.message, 'error');
+                }
+            }
+
+            renderImages() {
+                const imageGrid = document.getElementById('imageGrid');
+                const imageCount = document.getElementById('imageCount');
+                
+                imageCount.textContent = this.images.length;
+
+                if (this.images.length === 0) {
+                    imageGrid.innerHTML = `
+                        <div style="grid-column: 1/-1; text-align: center; padding: 30px; color: #6c757d;">
+                            <div style="font-size: 2.5rem; margin-bottom: 15px;">🖼️</div>
+                            <p>No test images uploaded yet</p>
+                            <p style="font-size: 0.9rem; margin-top: 10px; opacity: 0.7;">Upload some images to test the functionality</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                imageGrid.innerHTML = this.images.map(image => `
+                    <div class="image-card">
+                        <img src="${this.baseURL}${image.url}" alt="${image.originalName}" loading="lazy" 
+                             onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMiIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIEVycm9yPC90ZXh0Pjwvc3ZnPg=='">
+                        <div class="image-info">
+                            <div class="image-name">${image.originalName}</div>
+                            <div class="image-meta">
+                                ${this.formatFileSize(image.size)} • ${this.formatDate(image.uploadDate)}
+                            </div>
+                            <button class="delete-btn" onclick="testManager.deleteImage(${image.id})">
+                                🗑️ Delete
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            updateStats() {
+                const totalImages = document.getElementById('totalImages');
+                const totalSize = document.getElementById('totalSize');
+
+                totalImages.textContent = this.images.length;
+                
+                const total = this.images.reduce((sum, img) => sum + img.size, 0);
+                totalSize.textContent = this.formatFileSize(total);
+            }
+
+            formatFileSize(bytes) {
+                if (bytes === 0) return '0 B';
+                const k = 1024;
+                const sizes = ['B', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+            }
+
+            formatDate(dateString) {
+                const date = new Date(dateString);
+                return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            }
+
+            showProgress() {
+                document.getElementById('progressBar').style.display = 'block';
+                document.getElementById('progressFill').style.width = '100%';
+            }
+
+            hideProgress() {
+                setTimeout(() => {
+                    document.getElementById('progressBar').style.display = 'none';
+                    document.getElementById('progressFill').style.width = '0%';
+                }, 500);
+            }
+
+            showLoading() {
+                document.getElementById('loading').style.display = 'block';
+            }
+
+            hideLoading() {
+                document.getElementById('loading').style.display = 'none';
+            }
+
+            setUploadButtonState(disabled) {
+                const uploadBtn = document.getElementById('uploadBtn');
+                uploadBtn.disabled = disabled;
+                uploadBtn.textContent = disabled ? 'Uploading...' : 'Select Test Images';
+            }
+
+            showMessage(text, type) {
+                const message = document.getElementById('message');
+                message.textContent = text;
+                message.className = `message ${type}`;
+                message.style.display = 'block';
+
+                setTimeout(() => {
+                    message.style.display = 'none';
+                }, 4000);
+            }
+        }
+
+        // Initialize the testing application
+        const testManager = new TestImageManager();
+
+        // Test server connection
+        fetch('/health')
+            .then(response => response.json())
+            .then(data => {
+                console.log('🧪 Server health check:', data);
+                if (data.status === 'OK') {
+                    console.log('✅ Test server is ready');
+                }
+            })
+            .catch(error => {
+                console.error('❌ Server health check failed:', error);
+                testManager.showMessage('Warning: Test server connection issues', 'error');
+            });
+
+        // Log testing environment info
+        console.log('🧪 Testing Environment Information:');
+        console.log('📍 Base URL:', window.location.origin);
+        console.log('🔒 IP Restriction: 20.218.226.24 only');
+        console.log('📁 Storage: Memory only (temporary)');
+        console.log('⚡ Platform: Vercel Serverless');
+    </script>
+</body>
+</html>
