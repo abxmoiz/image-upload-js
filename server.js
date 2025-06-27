@@ -11,7 +11,7 @@ const PORT = process.env.PORT || 3000;
 const uploadedFiles = new Map();
 
 // IP Whitelisting Configuration
-const ipWhitelist = ['20.218.226.24//']; // Your specified VPN IP
+const ipWhitelist = ['20.218.226.24']; // Your specified VPN IP
 
 // IP Checking Middleware - DEFINED HERE
 const checkIP = (req, res, next) => {
