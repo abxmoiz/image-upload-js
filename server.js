@@ -1,288 +1,156 @@
-// server.js - Complete Working Server with IP Whitelisting
 const express = require('express');
-const multer = require('multer');
-const path = require('path');
-const cors = require('cors');
+const multer  = require('multer');
+const path    = require('path');
+const cors    = require('cors');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// In-memory storage for testing (images will be lost on restart)
+// In‐memory storage for testing
 const uploadedFiles = new Map();
 
-// IP Whitelisting Configuration
-const ipWhitelist = ['20.218.226.24']; // Your specified VPN IP
+// Whitelisted IPs
+const ipWhitelist = ['20.218.226.24'];
 
-// IP Checking Middleware - DEFINED HERE
+// ------------------------------------------------------------------
+// 1) Define your IP‐check middleware exactly once:
 const checkIP = (req, res, next) => {
-    // Get client IP address with multiple fallbacks
-    const clientIP = req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
-                    req.headers['x-real-ip'] ||
-                    req.headers['cf-connecting-ip'] ||
-                    req.connection.remoteAddress ||
-                    req.socket.remoteAddress ||
-                    req.ip;
-    
-    // Clean IPv6 mapped IPv4 addresses
-    const cleanIP = clientIP?.replace('::ffff:', '') || 'unknown';
-    
-    console.log(`🔍 Access attempt from IP: ${cleanIP}`);
-    console.log(`📋 Request: ${req.method} ${req.path}`);
-    
-    // Check if IP is localhost (for development)
-    const isLocalhost = cleanIP === '127.0.0.1' || 
-                       cleanIP === '::1' || 
-                       cleanIP === 'localhost' ||
-                       cleanIP === '::ffff:127.0.0.1';
-    
-    // Allow access if IP is whitelisted OR localhost in development
-    if (ipWhitelist.includes(cleanIP) || (process.env.NODE_ENV !== 'production' && isLocalhost)) {
-        console.log(`✅ Access granted to IP: ${cleanIP}`);
-        next();
-    } else {
-        console.log(`❌ Access denied to IP: ${cleanIP}`);
-        res.status(403).json({ 
-            error: 'Access Denied', 
-            message: 'Your IP address is not whitelisted',
-            yourIP: cleanIP,
-            allowedIPs: ipWhitelist,
-            timestamp: new Date().toISOString(),
-            note: 'This application is restricted to authorized IP addresses only'
-        });
-    }
+  const clientIP = (
+    req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
+    req.headers['x-real-ip'] ||
+    req.connection.remoteAddress ||
+    req.socket.remoteAddress ||
+    req.ip
+  ).replace('::ffff:', '');
+
+  const isLocalhost = ['127.0.0.1','::1','localhost','::ffff:127.0.0.1'].includes(clientIP);
+  const allowed = ipWhitelist.includes(clientIP) || (process.env.NODE_ENV !== 'production' && isLocalhost);
+
+  console.log(`${allowed ? '✅' : '❌'} [${clientIP}] ${req.method} ${req.originalUrl}`);
+
+  if (allowed) {
+    return next();
+  }
+
+  // If the client expects HTML, send a custom error page:
+  if (req.accepts('html')) {
+    return res.status(403)
+      .sendFile(path.join(__dirname, 'public', '403.html'));
+  }
+
+  // Otherwise, send JSON:
+  res.status(403).json({
+    error: 'Access Denied',
+    message: 'Your IP is not authorized',
+    yourIP: clientIP,
+    allowedIPs: ipWhitelist,
+    timestamp: new Date().toISOString()
+  });
 };
 
-// Middleware Setup
-app.set('trust proxy', true); // Trust proxy for correct IP detection
-app.use(cors({
-    origin: true,
-    credentials: true
-}));
+// ------------------------------------------------------------------
+// 2) Set up middleware (only /health is public)
+app.set('trust proxy', true);
+app.use(cors({ origin: true, credentials: true }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Serve static files
+// Public health‐check (no IP restriction)
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    totalImages: uploadedFiles.size
+  });
+});
+
+// Apply IP check to *everything else*
+app.use(checkIP);
+
+// Now serve your front‐end **after** the IP check
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Apply IP checking to protected routes
-app.use('/api', checkIP);  // Protect all API routes
-
-// Also protect the main page
-app.use('/', (req, res, next) => {
-    if (req.path === '/' || req.path === '/index.html') {
-        checkIP(req, res, next);
-    } else {
-        next();
-    }
-});
-
-// Configure multer for memory storage (Vercel compatible)
+// Multer setup
 const storage = multer.memoryStorage();
-
 const upload = multer({
-    storage: storage,
-    limits: {
-        fileSize: 5 * 1024 * 1024, // 5MB limit for testing
-        files: 5 // Max 5 files for testing
-    },
-    fileFilter: (req, file, cb) => {
-        const allowedTypes = /jpeg|jpg|png|gif|webp/;
-        const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-        const mimetype = allowedTypes.test(file.mimetype);
-
-        if (mimetype && extname) {
-            return cb(null, true);
-        } else {
-            cb(new Error('Testing: Only image files allowed (JPEG, PNG, GIF, WebP)'));
-        }
-    }
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024, files: 5 },
+  fileFilter: (req, file, cb) => {
+    const allowed = /jpeg|jpg|png|gif|webp/.test(path.extname(file.originalname).toLowerCase());
+    allowed ? cb(null, true) : cb(new Error('Only JPEG/PNG/GIF/WebP allowed'));
+  }
 });
 
-// ROUTES
-
-// Serve the main HTML page
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-// Health check endpoint (no IP restriction for monitoring)
-app.get('/health', (req, res) => {
-    res.json({ 
-        status: 'OK',
-        message: 'Testing server is running',
-        timestamp: new Date().toISOString(),
-        environment: process.env.NODE_ENV || 'development',
-        ipWhitelist: ipWhitelist,
-        totalImages: uploadedFiles.size
-    });
-});
-
-// Get all uploaded images
+// API Routes (all already behind `checkIP`)
 app.get('/api/images', (req, res) => {
-    try {
-        const images = Array.from(uploadedFiles.values()).map(file => ({
-            id: file.id,
-            originalName: file.originalName,
-            size: file.size,
-            uploadDate: file.uploadDate,
-            url: `/api/image/${file.id}`
-        }));
-        
-        res.json({ 
-            success: true, 
-            images,
-            total: images.length,
-            note: 'Testing mode: Images stored in memory only'
-        });
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
-    }
+  const images = Array.from(uploadedFiles.values()).map(f => ({
+    id:         f.id,
+    name:       f.originalName,
+    size:       f.size,
+    uploadedAt: f.uploadDate,
+    url:        `/api/image/${f.id}`
+  }));
+  res.json({ success: true, images });
 });
 
-// Serve individual image
 app.get('/api/image/:id', (req, res) => {
-    try {
-        const imageId = parseFloat(req.params.id);
-        const file = uploadedFiles.get(imageId);
-        
-        if (!file) {
-            return res.status(404).json({ 
-                success: false, 
-                error: 'Image not found',
-                note: 'Testing mode: Image may have been cleared from memory'
-            });
-        }
-
-        res.set({
-            'Content-Type': file.mimetype,
-            'Content-Length': file.buffer.length,
-            'Cache-Control': 'no-cache' // No caching for testing
-        });
-        
-        res.send(file.buffer);
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
-    }
+  const file = uploadedFiles.get(+req.params.id);
+  if (!file) return res.status(404).json({ error:'Not found' });
+  res.type(file.mimetype).send(file.buffer);
 });
 
-// Upload images
 app.post('/api/upload', upload.array('images', 5), (req, res) => {
-    try {
-        if (!req.files || req.files.length === 0) {
-            return res.status(400).json({ 
-                success: false, 
-                error: 'No files uploaded',
-                note: 'Testing: Please select image files to upload'
-            });
-        }
-
-        const uploadedImages = req.files.map(file => {
-            const fileData = {
-                id: Date.now() + Math.random(),
-                originalName: file.originalname,
-                size: file.size,
-                uploadDate: new Date().toISOString(),
-                buffer: file.buffer,
-                mimetype: file.mimetype
-            };
-            
-            // Store in memory
-            uploadedFiles.set(fileData.id, fileData);
-            return fileData;
-        });
-
-        console.log(`📤 Uploaded ${uploadedImages.length} files. Total stored: ${uploadedFiles.size}`);
-
-        res.json({ 
-            success: true, 
-            message: `Testing: ${uploadedImages.length} file(s) uploaded successfully`,
-            files: uploadedImages.map(f => ({
-                id: f.id,
-                originalName: f.originalName,
-                size: f.size,
-                uploadDate: f.uploadDate,
-                url: `/api/image/${f.id}`
-            })),
-            note: 'Images stored in memory for testing - will be lost on server restart'
-        });
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
-    }
+  if (!req.files?.length) {
+    return res.status(400).json({ error:'No files uploaded' });
+  }
+  const saved = req.files.map(f => {
+    const record = {
+      id:         Date.now() + Math.random(),
+      originalName: f.originalname,
+      size:       f.size,
+      uploadDate: new Date().toISOString(),
+      buffer:     f.buffer,
+      mimetype:   f.mimetype
+    };
+    uploadedFiles.set(record.id, record);
+    return {
+      id: record.id,
+      name: record.originalName,
+      url:  `/api/image/${record.id}`
+    };
+  });
+  res.json({ success:true, files: saved });
 });
 
-// Delete image
 app.delete('/api/images/:id', (req, res) => {
-    try {
-        const imageId = parseFloat(req.params.id);
-        
-        if (!uploadedFiles.has(imageId)) {
-            return res.status(404).json({ 
-                success: false, 
-                error: 'Image not found for deletion',
-                note: 'Testing: Image may have already been deleted'
-            });
-        }
-
-        // Remove from memory storage
-        uploadedFiles.delete(imageId);
-        
-        console.log(`🗑️ Deleted image ${imageId}. Remaining: ${uploadedFiles.size}`);
-
-        res.json({ 
-            success: true, 
-            message: 'Testing: Image deleted successfully',
-            remainingImages: uploadedFiles.size
-        });
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
-    }
+  const id = +req.params.id;
+  if (!uploadedFiles.delete(id)) {
+    return res.status(404).json({ error:'Not found' });
+  }
+  res.json({ success:true, remaining: uploadedFiles.size });
 });
 
-// Error handling middleware
-app.use((error, req, res, next) => {
-    if (error instanceof multer.MulterError) {
-        if (error.code === 'LIMIT_FILE_SIZE') {
-            return res.status(400).json({ 
-                success: false, 
-                error: 'Testing: File too large. Maximum 5MB per file.' 
-            });
-        }
-        if (error.code === 'LIMIT_FILE_COUNT') {
-            return res.status(400).json({ 
-                success: false, 
-                error: 'Testing: Too many files. Maximum 5 files allowed.' 
-            });
-        }
-    }
-    res.status(500).json({ success: false, error: error.message });
+// Multer & 404 error handlers
+app.use((err, req, res, next) => {
+  if (err.code === 'LIMIT_FILE_SIZE') {
+    return res.status(400).json({ error:'File too large (max 5MB)' });
+  }
+  if (err.code === 'LIMIT_FILE_COUNT') {
+    return res.status(400).json({ error:'Too many files (max 5)' });
+  }
+  res.status(500).json({ error: err.message });
 });
 
-// 404 handler
 app.use((req, res) => {
-    res.status(404).json({ 
-        success: false, 
-        error: 'Endpoint not found',
-        availableEndpoints: [
-            'GET /',
-            'GET /health',
-            'GET /api/images',
-            'POST /api/upload',
-            'DELETE /api/images/:id'
-        ]
-    });
+  res.status(404).json({ error:'Endpoint not found' });
 });
 
-// Start server for local development
+// Start server
 if (require.main === module) {
-    app.listen(PORT, () => {
-        console.log(`🧪 Testing Server running on port ${PORT}`);
-        console.log(`🔒 IP Whitelist: ${ipWhitelist.join(', ')}`);
-        console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
-        console.log(`📝 Note: This is for testing purposes only`);
-        console.log(`🖥️  Local URL: http://localhost:${PORT}`);
-        console.log(`📁 Storage: Memory only (temporary)`);
-    });
+  app.listen(PORT, () => {
+    console.log(`Server listening on ${PORT} — IP whitelist: ${ipWhitelist}`);
+  });
 }
 
-// Export for Vercel
 module.exports = app;
