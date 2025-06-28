@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🧪 Image Upload Testing App</title>
+    <title>🧪 Image Upload App</title>
     <style>
         * {
             margin: 0;
@@ -322,14 +322,14 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🧪 Image Upload Testing</h1>
-            <p>Test image upload and delete functionality with IP whitelisting</p>
+            <h1>🧪 Image Upload </h1>
+            <p> Image upload and delete functionality with IP whitelisting</p>
             <div class="testing-badge">AB Moiz Test For PCG</div>
         </div>
 
         <div class="main-content">
             <div class="testing-limits">
-                <h4>🔧 Testing Limitations:</h4>
+                <h4>🔧 Limitations:</h4>
                 <ul>
                     <li>Maximum 5MB per image file</li>
                     <li>Maximum 5 files per upload</li>
@@ -359,7 +359,7 @@
                     <div class="upload-text">
                         Drag & drop test images or click to browse
                     </div>
-                    <button class="upload-btn" id="uploadBtn">Select Test Images</button>
+                    <button class="upload-btn" id="uploadBtn">Select Images</button>
                 </div>
                 <input type="file" id="fileInput" class="file-input" multiple accept="image/*">
                 <div class="progress-bar" id="progressBar">
@@ -371,11 +371,11 @@
 
             <div class="loading" id="loading">
                 <div class="spinner"></div>
-                <p>Loading test images...</p>
+                <p>Loading images...</p>
             </div>
 
             <div class="gallery">
-                <h2>Test Images (<span id="imageCount">0</span>)</h2>
+                <h2>Images (<span id="imageCount">0</span>)</h2>
                 <div class="image-grid" id="imageGrid">
                     <!-- Images will be loaded here -->
                 </div>
@@ -550,7 +550,7 @@
                     imageGrid.innerHTML = `
                         <div style="grid-column: 1/-1; text-align: center; padding: 30px; color: #6c757d;">
                             <div style="font-size: 2.5rem; margin-bottom: 15px;">🖼️</div>
-                            <p>No test images uploaded yet</p>
+                            <p>No images uploaded yet</p>
                             <p style="font-size: 0.9rem; margin-top: 10px; opacity: 0.7;">Upload some images to test the functionality</p>
                         </div>
                     `;
